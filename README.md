@@ -1,11 +1,11 @@
-# 🚀 Heistogram: Blazing Fast Histograms for Quantile Estimation 🚀
+# 🚀 Heistogram: Blazing Fast Histograms for Quantile Estimation in Data Intensive Applications 🚀
 
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Single Header](https://img.shields.io/badge/Single%20Header-Yes-brightgreen.svg)](.)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-None-brightgreen.svg)](.)
 [![C/C++](https://img.shields.io/badge/Language-C/C++-orange.svg)](.)
 
-**Stop wasting time on slow histograms! Heistogram is a revolutionary C library that redefines quantile estimation, delivering *unprecedented speed and efficiency* for latency-sensitive applications, database analytics, and beyond.**
+**Stop wasting time on slow quantile calculations! Heistogram is a new C library that aims to greatly imporve quantile estimation, delivering *unprecedented speed and efficiency* for latency-sensitive applications, database analytics, and beyond.**
 
 Imagine querying percentiles directly from serialized data, merging histograms in the blink of an eye, and achieving all this with a tiny memory footprint.  That's Heistogram.
 
@@ -122,3 +122,34 @@ int main() {
     return 0;
 }
 ```
+
+To compile the above, you just need to:
+```bash
+   gcc -O3 -o example example.c -lm
+```
+
+That's it! You're now running with Heistogram speed!  For detailed API documentation, error bounds explanations, and more advanced usage, please refer to the [API](../blob/master/API.md) doc.
+
+## 💡 Real-World Applications - Where Heistogram Shines
+- Latency Monitoring Systems: Real-time percentile dashboards with minimal overhead.
+- Distributed Observability Platforms: Efficiently aggregate histograms from massive deployments.
+- Resource-Constrained Environments: Embedded systems, IoT devices, edge computing.
+- Database Analytics: Supercharge percentile queries directly on your database.
+- High-Volume Data Processing: Analyze millions of data points per second without breaking a sweat.
+## 🛣️ Roadmap & Future - We're Just Getting Started!
+- More Language/Database Bindings: Ruby & SQlite bindings are planned. Community contributions are welcome!
+- Hardware Optimizations: Exploring SIMD and other hardware-specific optimizations.
+- Enhanced Statistical Capabilities: Investigating features like mean, variance, and other statistical measures, while staying true to our performance focus.
+## 🙌 Contributing - Join the Heistogram Revolution!
+Heistogram is open-source and we welcome contributions!  Whether it's bug fixes, performance improvements, new features, or language bindings, your help is appreciated.  Check out the CONTRIBUTING.md (coming soon) for guidelines.
+
+## 🧑‍💻 Author
+Mohamed Hassan
+
+- Email: oldmoe@gmail.com
+- Blog: oldmoe.blog
+- X: @oldmoe
+## 📜 License
+Heistogram is released under the MIT License.  Feel free to use it in your personal and commercial projects.
+
+Get started with Heistogram today! ✨
