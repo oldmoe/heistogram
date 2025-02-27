@@ -8,7 +8,7 @@ The command line used to compile the benchmark was:
   gcc -O3 -march=native -o bench ./bench.c -lm
 ```
 
-## Lognoram Distribution
+## Lognormal Distribution
 In this benchmark a dataset of 10M elements was created according to lognormal distribution
 
 The data spread denotes the difference between min (0) and max values
