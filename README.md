@@ -80,6 +80,8 @@ We rigorously benchmarked Heistogram against T-Digest (using RedisBloom's implem
 | 10⁵         | 1,002 bytes     |
 | 10⁶         | 1,120 bytes     |
 
+More details in the [benchmarks](../blob/master/BENCHMARKS.md) page
+
 **Heistogram isn't just faster in benchmarks; it translates to real-world application improvements.**  From database analytics to live benchmarking and streaming telemetry, Heistogram delivers consistent performance gains.
 
 ## 🚀 Getting Started -  It's a Breeze!
