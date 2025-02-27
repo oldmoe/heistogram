@@ -11,7 +11,7 @@
 static float HEIST_GROWTH_FACTOR = 0.02;
 static float HEIST_INV_LOG_GROWTH_FACTOR = 116.2767475;
 static uint16_t HEIST_MAX_UNMAPPED_BUCKET = 57; // after this point multiple values can fall in the same bucket
-static uint16_t HEIST_BUCKET_MAPPING_DELTA = 205 - 57 + 1; //shift the mappings to continue from the last artificial one
+static uint16_t HEIST_BUCKET_MAPPING_DELTA = 205 - 57 - 1; //shift the mappings to continue from the last artificial one
 
 
 // Simplified Bucket structure - only stores count
