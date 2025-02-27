@@ -19,7 +19,7 @@ As developers dealing with latency data, performance monitoring, or large datase
 
 **Heistogram delivers the answer.  Here's what makes it stand out:**
 
-* **🚀  Unrivaled Performance:**  **Up to 142x faster merges, 13x faster queries, and 14x faster insertions** compared to T-Digest. Benchmarks don't lie (see below!).
+* **🚀  Unrivaled Performance:**  **Up to 318x faster merges, 17x faster queries, and 51x faster insertions** compared to T-Digest. Benchmarks don't lie (see below!).
 * **💾  Extreme Space Efficiency:**  Serialized histograms are incredibly compact, scaling *sublinearly* with data range. Perfect for persistence and memory-limited systems.
 * **⚡️  Serialized Query Magic:** **Query percentiles DIRECTLY from serialized histograms.**  No more deserialization bottlenecks, especially crucial for databases. This is a first!
 * **📦  Single-Header Simplicity:**  Just drop `heistogram.h` into your project. **Zero dependencies.**  Integration couldn't be easier.
