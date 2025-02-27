@@ -80,7 +80,7 @@ We rigorously benchmarked Heistogram against T-Digest (using RedisBloom's implem
 | 10⁵         | 1,002 bytes     |
 | 10⁶         | 1,120 bytes     |
 
-More details in the [benchmarks](../blob/master/BENCHMARKS.md) page
+More details in the [benchmarks](../master/BENCHMARKS.md) page
 
 **Heistogram isn't just faster in benchmarks; it translates to real-world application improvements.**  From database analytics to live benchmarking and streaming telemetry, Heistogram delivers consistent performance gains.
 
@@ -130,7 +130,7 @@ To compile the above, you just need to:
    gcc -O3 -o example example.c -lm
 ```
 
-That's it! You're now running with Heistogram speed!  For detailed API documentation, error bounds explanations, and more advanced usage, please refer to the [API](../blob/master/API.md) doc.
+That's it! You're now running with Heistogram speed!  For detailed API documentation, error bounds explanations, and more advanced usage, please refer to the [API](../master/API.md) doc.
 
 ## 💡 Real-World Applications - Where Heistogram Shines
 - Latency Monitoring Systems: Real-time percentile dashboards with minimal overhead.
