@@ -7,12 +7,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-
 static float HEIST_GROWTH_FACTOR = 0.02;
-static float HEIST_INV_LOG_GROWTH_FACTOR = 116.2767475;
+static float HEIST_INV_LOG_GROWTH_FACTOR = 35.00278878;//116.2767475;
 static uint16_t HEIST_MAX_UNMAPPED_BUCKET = 57; // after this point multiple values can fall in the same bucket
-static uint16_t HEIST_BUCKET_MAPPING_DELTA = 205 - 57 - 1; //shift the mappings to continue from the last artificial one
-
+static uint16_t HEIST_BUCKET_MAPPING_DELTA = 147; // 205 - 57 - 1; //shift the mappings to continue from the last artificial one
 
 // Simplified Bucket structure - only stores count
 typedef struct {
@@ -28,6 +26,7 @@ typedef struct {
     uint64_t max;            // Maximum value
     Bucket* buckets;         // Array of buckets, index = bucket ID
 } Heistogram;
+
 
 /*************************/
 /* VARINT HELPER METHODS */
@@ -125,7 +124,7 @@ static inline float fast_log(float x) {
     float ys = y;
     float approx_log = y;
 
-    for(int i=1; i < 4; i++){
+    for(int i=1; i < 3; i++){
         ys *= y;
         approx_log += (1 - (2*(i & 1))) * (1.0f/(float)(i+1)) * ys;
     }
@@ -143,7 +142,7 @@ static inline float fast_inverse_log(float value) {
 
 static inline int16_t get_bucket_id(double value) {
     if (value <= HEIST_MAX_UNMAPPED_BUCKET) return value;
-    return (int16_t)((float)fast_log(value) * HEIST_INV_LOG_GROWTH_FACTOR) - HEIST_BUCKET_MAPPING_DELTA;
+    return (int16_t)((float)log2(value) * HEIST_INV_LOG_GROWTH_FACTOR) - HEIST_BUCKET_MAPPING_DELTA;
 }
 
 static inline uint64_t get_bucket_min(uint16_t bid) {
@@ -271,7 +270,6 @@ static void heistogram_add(Heistogram* h, uint64_t value) {
     if (!h || value < 0) return;
     
     int16_t bid = get_bucket_id(value);
-
     if (h->total_count == 0) {
         h->min = value;
         h->max = value;
@@ -284,7 +282,7 @@ static void heistogram_add(Heistogram* h, uint64_t value) {
     
     // Expand array if needed
     if (bid >= h->capacity) {
-        size_t new_capacity = bid + 16; // Add some extra space
+        size_t new_capacity = bid + 16;// + 16; // Add some extra space
         Bucket* new_buckets = realloc(h->buckets, new_capacity * sizeof(Bucket));
         if (!new_buckets) return;
         
@@ -502,25 +500,29 @@ static inline void* heistogram_serialize(const Heistogram* h, size_t* size) {
     
     // Find the highest used bucket ID
     int16_t max_bucket_id = h->capacity - 1;
-    
-    //while (max_bucket_id >= 0 && h->buckets[max_bucket_id].count == 0) {
-    //    max_bucket_id--;
-    //}
-    
+    //printf("original bucket count %u\n", h->capacity);
+   
+    while (max_bucket_id >= 0 && h->buckets[max_bucket_id].count == 0) {
+        max_bucket_id--;
+    }
+
+    //printf("max bucket id is %u and its count is %lu\n", max_bucket_id, h->buckets[max_bucket_id].count);
+    //printf("min bucket id is %u\n", h->min_bucket_id);
+
     // Max varint size is 9 bytes, allocate maximum possible size
     size_t max_var_size = 9;
     // We store: error_margin, max_bucket_id, total_count, min, max
     size_t header_size = 5 * max_var_size;
     // For each bucket we store the count
     size_t bucket_size = max_var_size;
-    size_t max_total_size = header_size + ((max_bucket_id + 1) * bucket_size);
+    size_t max_total_size = header_size + ((max_bucket_id - h->min_bucket_id + 1) * bucket_size);
     
     uint8_t* buffer = malloc(max_total_size);
     if (!buffer) return NULL;
     
     uint8_t* ptr = buffer;
-    
-    ptr += encode_varint(h->capacity - h->min_bucket_id, ptr); // Number of buckets to store
+    //printf("encoding bucket count %u\n", max_bucket_id - h->min_bucket_id + 1);
+    ptr += encode_varint(max_bucket_id - h->min_bucket_id + 1, ptr); // Number of buckets to store
     ptr += encode_varint(h->total_count, ptr);
     ptr += encode_varint(h->min, ptr);
     ptr += encode_varint(h->max - h->min, ptr);
@@ -528,9 +530,10 @@ static inline void* heistogram_serialize(const Heistogram* h, size_t* size) {
     
     // Write buckets in reverse order (higher ids first)
     for (int16_t i = max_bucket_id; i >= h->min_bucket_id; i--) {
+        //printf("%lu-", h->buckets[i].count);
         ptr += encode_bucket(h->buckets[i].count, ptr);
     }
-    
+    //printf("\n");
     // Calculate actual size used
     *size = ptr - buffer;
     
