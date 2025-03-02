@@ -114,28 +114,6 @@ static inline double fast_pow_int(float x, int y) {
     return result;
 }
 
-static inline float fast_log(float x) {
-    int exponent = ((*(uint32_t*)&x) >> 23) - 127;
-    //x = ldexpf(x, -exponent); // More portable normalization
-    x *= 1.0f / fast_pow_int(2.0, exponent);
-
-    // Taylor series expansion
-    float y = x - 1.0f;
-    float ys = y;
-    float approx_log = y;
-
-    for(int i=1; i < 3; i++){
-        ys *= y;
-        approx_log += (1 - (2*(i & 1))) * (1.0f/(float)(i+1)) * ys;
-    }
-
-    return ((approx_log / 0.693147f) + exponent) / 3.321928f; // log(2), log2(10)
-}
-
-static inline float fast_inverse_log(float value) {    
-    return (float) 1 / fast_log(value+1);
-}
-
 /*****************************/
 /* HEISTOGRAM HELPER METHODS */
 /*****************************/
