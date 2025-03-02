@@ -70,24 +70,24 @@ static void test_basic_functionality() {
     assert(heistogram_max(h) == 0);
     
     // Add some values
-    heistogram_add(h, 10);
-    heistogram_add(h, 20);
-    heistogram_add(h, 30);
-    heistogram_add(h, 40);
-    heistogram_add(h, 50);
+    heistogram_add(h, 100);
+    heistogram_add(h, 200);
+    heistogram_add(h, 300);
+    heistogram_add(h, 400);
+    heistogram_add(h, 500);
     
     // Test count and min/max
     assert(heistogram_count(h) == 5);
-    assert(heistogram_min(h) == 10);
-    assert(heistogram_max(h) == 50);
+    assert(heistogram_min(h) == 100);
+    assert(heistogram_max(h) == 500);
     
     // Add extreme values
     heistogram_add(h, 5);
-    heistogram_add(h, 500);
+    heistogram_add(h, 5000);
     
     assert(heistogram_count(h) == 7);
     assert(heistogram_min(h) == 5);
-    assert(heistogram_max(h) == 500);
+    assert(heistogram_max(h) == 5000);
     
     // Test percentiles
     double p50 = heistogram_percentile(h, 50.0);
@@ -228,7 +228,7 @@ static void test_merge() {
     free(h1_serialized);
     
     // Test in-place merge
-    int merge_result = heistogram_merge_in_place(h1_clone, h2);
+    int merge_result = heistogram_merge_inplace(h1_clone, h2);
     assert(merge_result == 1);
     
     print_heistogram_stats(h1_clone, "In-place Merged Heistogram");
@@ -253,12 +253,12 @@ static void test_serialized_merge() {
     Heistogram* h2 = heistogram_create();
     
     // Add values to first histogram (lower range)
-    for (int i = 1; i <= 50; i++) {
+    for (int i = 1; i <= 500; i++) {
         heistogram_add(h1, i);
     }
     
     // Add values to second histogram (higher range)
-    for (int i = 51; i <= 100; i++) {
+    for (int i = 501; i <= 1000; i++) {
         heistogram_add(h2, i);
     }
     
@@ -502,7 +502,7 @@ static void test_multi_step_workflow() {
     // Also test merging all three periods directly
     Heistogram* direct_merged = heistogram_merge(h_period1, h_period2);
     assert(direct_merged != NULL);
-    assert(heistogram_merge_in_place(direct_merged, h_period3) == 1);
+    assert(heistogram_merge_inplace(direct_merged, h_period3) == 1);
     
     // Compare results of the two merge approaches
     print_heistogram_stats(final_merged, "Step-by-step Merged Heistogram");

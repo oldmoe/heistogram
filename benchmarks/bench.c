@@ -15,7 +15,7 @@ static uint64_t get_microseconds() {
 // Utility function to generate random numbers
 static void generate_random_array(uint64_t* arr, size_t size) {
     for (size_t i = 0; i < size; i++) {
-        arr[i] = rand() % (uint64_t)(pow(10, 12) + 1); 
+        arr[i] = rand() % (uint64_t)(pow(10, 1) + 1); 
     }
 }
 
@@ -24,7 +24,7 @@ static void generate_uniform_array(uint64_t* arr, size_t size) {
         // For true uniform distribution, we need to handle the bias
         // that comes from RAND_MAX not being a multiple of our range
         uint64_t rand_val;
-        uint64_t max_value = pow(10, 1); // 0 to 1M inclusive
+        uint64_t max_value = pow(10, 9); // 0 to 1M inclusive
         
         // Find the largest multiple of (max_value + 1) that is <= RAND_MAX
         uint64_t limit = RAND_MAX - (RAND_MAX % (max_value + 1));
@@ -35,7 +35,8 @@ static void generate_uniform_array(uint64_t* arr, size_t size) {
         } while (rand_val > limit);
         
         // Now we can safely use modulo without bias
-        arr[i] = rand_val % (max_value + 1);
+        arr[i] = rand_val % (uint64_t)(max_value + 1);
+        //arr[i] = 1000;
     }
 }
 
@@ -45,7 +46,7 @@ static void generate_lognormal_array(uint64_t* arr, size_t size) {
     double mu = 0.0; // Reduced from 0.5 to shift peak leftward
     double sigma = 0.7; // Reduced from 1.0 for less spread/skew
     uint64_t min_val = 0;
-    uint64_t max_val = 10;
+    uint64_t max_val = pow(10, 9);
     // Calculate the min and max values of the lognormal distribution before scaling
     double min_lognormal = (double)min_val;
     double max_lognormal = (double)max_val;
@@ -121,6 +122,7 @@ static BenchmarkResult run_benchmark(uint64_t* data, size_t size, float error_ma
         .data_size = size,
         .error_margin = error_margin
     };
+
     printf("Benchmarking inserts .. ");
     // Measure insertion time
     uint64_t start = get_microseconds();
@@ -131,7 +133,7 @@ static BenchmarkResult run_benchmark(uint64_t* data, size_t size, float error_ma
     result.insert_time = get_microseconds() - start;
     printf("done\n");
 
-    printf("Min value is %lu, max value is %lu\n", h->min, h->max);
+    printf("Min value is %lu, max value is %lu, bucket_count is %u, min bucket id is %u\n", h->min, h->max, h->capacity, h->min_bucket_id);
 
     printf("Benchmarking percentile .. ");
     // Measure percentile calculations (1M times)
@@ -233,12 +235,12 @@ static BenchmarkResult run_benchmark(uint64_t* data, size_t size, float error_ma
     }
     result.merge_time = get_microseconds() - start;
     printf("done\n");
-    printf("Benchmarking merge_in_place .. ");
+    printf("Benchmarking merge_inplace .. ");
 
     // Measure in-place merge operation (10K times)
     start = get_microseconds();
     for (size_t i = 0; i < BENCH_ITERATIONS; i++) {
-        heistogram_merge_in_place(h, h2);
+        heistogram_merge_inplace(h, h2);
     }
     result.merge_inplace_time = get_microseconds() - start;
     printf("done\n");
@@ -285,8 +287,8 @@ static BenchmarkResult run_benchmark(uint64_t* data, size_t size, float error_ma
 
     // Cleanup
     if (serialized) free(serialized);
-    heistogram_free(h);
-    heistogram_free(h2);
+    //heistogram_free(h);
+    //heistogram_free(h2);
 
     return result;
 }

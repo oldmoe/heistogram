@@ -319,7 +319,7 @@ static Heistogram* heistogram_merge(const Heistogram* h1, const Heistogram* h2) 
 }
 
 // NEW: In-place merge of h2 into h1
-static int heistogram_merge_in_place(Heistogram* h1, const Heistogram* h2) {
+static int heistogram_merge_inplace(Heistogram* h1, const Heistogram* h2) {
     if (!h1 || !h2) return 0;
     
     // Expand h1 if needed to accommodate h2's buckets
