@@ -276,6 +276,70 @@ static void heistogram_add(Heistogram* h, uint64_t value) {
     h->total_count++;
 }
 
+static void heistogram_remove(Heistogram* h, uint64_t value) {
+    if (!h || value < 0 || h->total_count == 0) return;
+    
+    int16_t bid = get_bucket_id(value);
+    if (bid >= h->capacity || h->buckets[bid].count == 0) return;
+
+    h->buckets[bid].count--;
+    h->total_count--;
+    
+    // Check if histogram is now empty
+    if (h->total_count == 0) {
+        h->min = 0;
+        h->max = 0;
+        h->min_bucket_id = 0;
+        return;
+    }
+    
+    // Only update min/max values if the bucket count went to zero
+    if (h->buckets[bid].count == 0) {
+        // Check if this was the bucket containing the max value
+        uint64_t bucket_min = get_bucket_min(bid);
+        uint64_t bucket_max = get_bucket_max(bucket_min);
+        
+        if (h->max <= bucket_max && h->max >= bucket_min) {
+            // Find new max by scanning buckets backward from the highest bucket
+            h->max = 0;
+            for (int16_t i = h->capacity - 1; i >= 0; i--) {
+                if (h->buckets[i].count > 0) {
+                    // For the max, we use the upper bound of the bucket range
+                    uint64_t b_min = get_bucket_min(i);
+                    uint64_t b_max = get_bucket_max(b_min);
+                    h->max = b_max;
+                    break;
+                }
+            }
+        }
+        
+        // Check if this was the bucket containing the min value
+        if (h->min >= bucket_min && h->min <= bucket_max) {
+            // Find new min by scanning buckets forward from the lowest bucket
+            h->min = UINT64_MAX;
+            for (int16_t i = 0; i < h->capacity; i++) {
+                if (h->buckets[i].count > 0) {
+                    // For the min, we use the lower bound of the bucket range
+                    h->min = get_bucket_min(i);
+                    h->min_bucket_id = i;
+                    break;
+                }
+            }
+        }
+        
+        // Update min_bucket_id if needed
+        if (bid == h->min_bucket_id) {
+            // Find new min_bucket_id
+            for (int16_t i = h->min_bucket_id; i < h->capacity; i++) {
+                if (h->buckets[i].count > 0) {
+                    h->min_bucket_id = i;
+                    break;
+                }
+            }
+        }
+    }
+}
+
 static Heistogram* heistogram_merge(const Heistogram* h1, const Heistogram* h2) {
     if (!h1 || !h2) return NULL;
         
@@ -375,77 +439,6 @@ static double heistogram_percentile(const Heistogram* h, double p) {
     }
     
     return h->min;
-}
-
-// New function to calculate multiple percentiles in one pass
-static void heistogram_percentiles(const Heistogram* h, const double* percentiles, size_t num_percentiles, double* results) {
-    if (!h || !percentiles || !results || num_percentiles == 0) return;
-    
-    // Copy and sort percentiles in descending order
-    double* p_sorted = malloc(num_percentiles * sizeof(double));
-    if (!p_sorted) return;
-    
-    memcpy(p_sorted, percentiles, num_percentiles * sizeof(double));
-    for (size_t i = 0; i < num_percentiles; i++) {
-        for (size_t j = i + 1; j < num_percentiles; j++) {
-            if (p_sorted[i] < p_sorted[j]) {
-                double temp = p_sorted[i];
-                p_sorted[i] = p_sorted[j];
-                p_sorted[j] = temp;
-            }
-        }
-    }
-    
-    // Create a mapping from sorted to original positions
-    size_t* p_indices = malloc(num_percentiles * sizeof(size_t));
-    if (!p_indices) {
-        free(p_sorted);
-        return;
-    }
-    
-    for (size_t i = 0; i < num_percentiles; i++) {
-        for (size_t j = 0; j < num_percentiles; j++) {
-            if (p_sorted[i] == percentiles[j]) {
-                p_indices[i] = j;
-                break;
-            }
-        }
-    }
-    
-    // Process all percentiles in one pass, from higher percentiles to lower
-    size_t current_p = 0;
-    uint64_t cumsum = 0;
-    
-    for (int16_t i = h->capacity - 1; i >= 0 && current_p < num_percentiles; i--) {
-        if (h->buckets[i].count > 0) {
-            while (current_p < num_percentiles) {
-                double target = ((100.0 - p_sorted[current_p]) / 100.0) * h->total_count;
-                
-                if (cumsum + h->buckets[i].count >= target) {
-                    double pos = ((double)(target - cumsum)) / (double)h->buckets[i].count;
-                    uint64_t min_val = get_bucket_min(i);
-                    uint64_t max_val = get_bucket_max(min_val);
-                    if (max_val > h->max) max_val = h->max;
-                    if (min_val < h->min) min_val = h->min;
-                    
-                    results[p_indices[current_p]] = max_val - pos * (max_val - min_val);
-                    current_p++;
-                } else {
-                    break;
-                }
-            }
-            cumsum += h->buckets[i].count;
-        }
-    }
-    
-    // Handle remaining percentiles (if any)
-    while (current_p < num_percentiles) {
-        results[p_indices[current_p]] = h->min;
-        current_p++;
-    }
-    
-    free(p_sorted);
-    free(p_indices);
 }
 
 static double heistogram_prank(const Heistogram* h, double value) {
@@ -625,104 +618,10 @@ static double heistogram_percentile_serialized(const void* buffer, size_t size, 
     return min;
 }
 
-// New function to calculate multiple percentiles from serialized data in one pass
-// Fixed function to calculate multiple percentiles from serialized data in one pass
-static void heistogram_percentiles_serialized(const void* buffer, size_t size, const double* percentiles, size_t num_percentiles, double* results) {
-    if (!buffer || size < 3 || !percentiles || !results || num_percentiles == 0) return;
-    
-    const uint8_t* ptr = buffer;
-    uint16_t bucket_count;   
-    uint64_t total_count;
-    uint64_t min;
-    uint64_t max;
-    uint16_t min_bucket_id;
-    
-    // Decode the header
-    size_t bytes_read = decode_header(ptr, &bucket_count, &total_count, &min, &max, &min_bucket_id);
-    if (bytes_read == 0) return;
-    ptr += bytes_read;
-    
-    uint16_t max_bucket_id = min_bucket_id + bucket_count - 1;
-    
-    // Copy and sort percentiles in descending order
-    double* p_sorted = malloc(num_percentiles * sizeof(double));
-    if (!p_sorted) return;
-    
-    memcpy(p_sorted, percentiles, num_percentiles * sizeof(double));
-    for (size_t i = 0; i < num_percentiles; i++) {
-        for (size_t j = i + 1; j < num_percentiles; j++) {
-            if (p_sorted[i] < p_sorted[j]) {
-                double temp = p_sorted[i];
-                p_sorted[i] = p_sorted[j];
-                p_sorted[j] = temp;
-            }
-        }
-    }
-    
-    // Create a mapping from sorted to original positions
-    size_t* p_indices = malloc(num_percentiles * sizeof(size_t));
-    if (!p_indices) {
-        free(p_sorted);
-        return;
-    }
-    
-    for (size_t i = 0; i < num_percentiles; i++) {
-        for (size_t j = 0; j < num_percentiles; j++) {
-            if (p_sorted[i] == percentiles[j]) {
-                p_indices[i] = j;
-                break;
-            }
-        }
-    }
-    
-    // Process all percentiles in one pass
-    size_t current_p = 0;
-    uint64_t cumsum = 0;
-    uint64_t count;
-    
-    // Process buckets in reverse order (higher IDs first)
-    for (int16_t i = max_bucket_id; i >= min_bucket_id && current_p < num_percentiles; i--) {
-        bytes_read = decode_bucket(ptr, &count);
-        if (bytes_read == 0) {
-            free(p_sorted);
-            free(p_indices);
-            return;
-        }
-        ptr += bytes_read;
-        
-        if (count > 0) {
-            while (current_p < num_percentiles) {
-                double target = ((100.0 - p_sorted[current_p]) / 100.0) * total_count;
-                
-                if (cumsum + count >= target) {
-                    double pos = ((double)(target - cumsum)) / (double)count;
-                    uint64_t min_val = get_bucket_min(i);
-                    uint64_t max_val = get_bucket_max(min_val);
-                    if (max_val > max) max_val = max;
-                    if (min_val < min) min_val = min;
-                    
-                    results[p_indices[current_p]] = max_val - pos * (max_val - min_val);
-                    current_p++;
-                } else {
-                    break;
-                }
-            }
-            cumsum += count;
-        }
-    }
-    
-    // Handle remaining percentiles (if any)
-    while (current_p < num_percentiles) {
-        results[p_indices[current_p]] = min;
-        current_p++;
-    }
-    
-    free(p_sorted);
-    free(p_indices);
-}
+
 
 // Fixed function to merge in-memory Heistogram with serialized Heistogram
-static Heistogram* heistogram_merge_serialized(const Heistogram* h, const void* buffer, size_t size) {
+static Heistogram* heistogram_merge_serialized(Heistogram* h, const void* buffer, size_t size) {
     if (!h || !buffer || size < 3) return NULL;
     
     const uint8_t* ptr = buffer;
@@ -731,6 +630,7 @@ static Heistogram* heistogram_merge_serialized(const Heistogram* h, const void* 
     uint64_t min;
     uint64_t max;
     uint16_t min_bucket_id;
+    
     
     // Decode the header
     size_t bytes_read = decode_header(ptr, &bucket_count, &total_count, &min, &max, &min_bucket_id);
@@ -786,6 +686,7 @@ static Heistogram* heistogram_merge_serialized(const Heistogram* h, const void* 
     result->min_bucket_id = h->min_bucket_id < min_bucket_id ? h->min_bucket_id : min_bucket_id;
     
     return result;
+
 }
 
 // Fixed function to merge two serialized Heistograms

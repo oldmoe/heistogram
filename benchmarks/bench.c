@@ -15,7 +15,7 @@ static uint64_t get_microseconds() {
 // Utility function to generate random numbers
 static void generate_random_array(uint64_t* arr, size_t size) {
     for (size_t i = 0; i < size; i++) {
-        arr[i] = rand() % (uint64_t)(pow(10, 1) + 1); 
+        arr[i] = rand() % (uint64_t)(pow(10, 6) + 1); 
     }
 }
 
@@ -149,6 +149,7 @@ static BenchmarkResult run_benchmark(uint64_t* data, size_t size, float error_ma
     }
     result.percentile_time = get_microseconds() - start;
     printf("done\n");
+    /*
     printf("Benchmarking percentiles .. ");
     // Measure multiple percentiles calculation (1M times)
     double percentiles[] = {50, 75, 90, 95, 99, 99.9, 99.99};
@@ -166,6 +167,7 @@ static BenchmarkResult run_benchmark(uint64_t* data, size_t size, float error_ma
     result.m_p999 = results[5];
     result.m_p9999 = results[6];
     printf("done\n");
+    */
     printf("Benchmarking serialize .. ");
 
     // Measure serialization (10K times)
@@ -194,14 +196,15 @@ static BenchmarkResult run_benchmark(uint64_t* data, size_t size, float error_ma
     }
     result.serialized_percentile_time = get_microseconds() - start;
     printf("done\n");
+    /*
     printf("Benchmarking percentiles_serialized .. ");
 
     // Measure multiple serialized percentiles calculation (1M times)
-    start = get_microseconds();
-    for (size_t i = 0; i < BENCH_ITERATIONS; i++) {
-        heistogram_percentiles_serialized(serialized, ser_size, percentiles, 7, results);
-    }
-    result.serialized_percentiles_time = get_microseconds() - start;
+    //start = get_microseconds();
+    //for (size_t i = 0; i < BENCH_ITERATIONS; i++) {
+        //heistogram_percentiles_serialized(serialized, ser_size, percentiles, 7, results);
+    //}
+    //result.serialized_percentiles_time = get_microseconds() - start;
     result.sm_p50 = results[0];
     result.sm_p75 = results[1];
     result.sm_p90 = results[2];
@@ -210,6 +213,7 @@ static BenchmarkResult run_benchmark(uint64_t* data, size_t size, float error_ma
     result.sm_p999 = results[5];
     result.sm_p9999 = results[6];
     printf("done\n");
+    */
     printf("Benchmarking deserialize .. ");
 
     // Measure deserialization (10K times)
@@ -310,14 +314,14 @@ static void print_results(const BenchmarkResult* result) {
            (result->percentile_time * 1000.0) / (7 * BENCH_ITERATIONS));
     printf("  Values: p50=%.2f, p75=%.2f, p90=%.2f, p95=%.2f, p99=%.2f, p99.9=%.2F, p99.99=%.2F\n",
            result->p50, result->p75, result->p90, result->p95, result->p99, result->p999, result->p9999);
-
+    /*
     printf("\nMultiple Percentiles Calculation (%lu iterations):\n", 7 * BENCH_ITERATIONS);
     printf("  Total Time: %.3f ms (%.3f ns per operation)\n",
            result->percentiles_time / 1000.0,
            (result->percentiles_time * 1000.0) / (7 * BENCH_ITERATIONS));
            printf("  Values: p50=%.2f, p75=%.2f, p90=%.2f, p95=%.2f, p99=%.2F, p99.9=%.2F, p99.99=%.2F\n",
             result->m_p50, result->m_p75, result->m_p90, result->m_p95, result->m_p99, result->m_p999, result->m_p9999);
- 
+    */
     printf("\nMerge Operation (%lu iterations):\n", BENCH_ITERATIONS);
     printf("  Total Time: %.3f ms (%.3f ns per operation)\n",
             result->merge_time / 1000.0,
@@ -345,7 +349,7 @@ static void print_results(const BenchmarkResult* result) {
            (result->serialized_percentile_time * 1000.0) / (7 * BENCH_ITERATIONS));
     printf("  Values: p50=%.2f, p75=%.2f, p90=%.2f, p95=%.2f, p99=%.2f, p99.9=%.2f, p99.99=%.2f\n",
            result->s_p50, result->s_p75, result->s_p90, result->s_p95, result->s_p99, result->s_p999, result->s_p9999);
-
+    /*
     printf("\nMultiple Serialized Percentiles Calculation (%lu iterations):\n", 7 * BENCH_ITERATIONS);
     printf("  Total Time: %.3f ms (%.3f ns per operation)\n",
            result->serialized_percentiles_time / 1000.0,
@@ -353,7 +357,7 @@ static void print_results(const BenchmarkResult* result) {
 
            printf("  Values: p50=%.2f, p75=%.2f, p90=%.2f, p95=%.2f, p99=%.2f, p99.9=%.2f, p99.99=%.2f\n",
             result->sm_p50, result->sm_p75, result->sm_p90, result->sm_p95, result->sm_p99, result->sm_p999, result->sm_p9999);
-
+    */
     printf("\nMerge with Serialized Data (%lu iterations):\n", BENCH_ITERATIONS);
     printf("  Total Time: %.3f ms (%.3f ns per operation)\n",
            result->merge_serialized_time / 1000.0,

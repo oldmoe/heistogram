@@ -95,21 +95,7 @@ static void test_basic_functionality() {
     
     printf("P50: %.2f\n", p50);
     printf("P90: %.2f\n", p90);
-    
-    // Test batch percentiles calculation
-    double percentiles[] = {50.0, 90.0, 99.0};
-    double results[3];
-    heistogram_percentiles(h, percentiles, 3, results);
-    
-    printf("Batch P50: %.2f\n", results[0]);
-    printf("Batch P90: %.2f\n", results[1]);
-    printf("Batch P99: %.2f\n", results[2]);
-    
-    // Verify batch results match individual calculations
-    assert(double_equals(p50, results[0], 0.01));
-    assert(double_equals(p90, results[1], 0.01));
-    assert(double_equals(heistogram_percentile(h, 99.0), results[2], 0.01));
-    
+        
     // Test prank
     double rank = heistogram_prank(h, 30);
     printf("Rank of 30: %.2f%%\n", rank);
@@ -151,14 +137,6 @@ static void test_serialization() {
     printf("Serialized P90: %.2f\n", p90_serialized);
     printf("Serialized P99: %.2f\n", p99_serialized);
     
-    // Test batch percentiles on serialized data
-    double percentiles[] = {50.0, 90.0, 99.0};
-    double results_serialized[3];
-    heistogram_percentiles_serialized(serialized, size, percentiles, 3, results_serialized);
-    
-    printf("Serialized Batch P50: %.2f\n", results_serialized[0]);
-    printf("Serialized Batch P90: %.2f\n", results_serialized[1]);
-    printf("Serialized Batch P99: %.2f\n", results_serialized[2]);
     
     // Deserialize
     Heistogram* h2 = heistogram_deserialize(serialized, size);
@@ -174,13 +152,6 @@ static void test_serialization() {
     assert(double_equals(heistogram_percentile(h1, 90.0), p90_serialized, 0.1));
     assert(double_equals(heistogram_percentile(h1, 99.0), p99_serialized, 0.1));
     
-    // Compare batch percentile calculations
-    double results_h1[3];
-    heistogram_percentiles(h1, percentiles, 3, results_h1);
-    
-    assert(double_equals(results_h1[0], results_serialized[0], 0.1));
-    assert(double_equals(results_h1[1], results_serialized[1], 0.1));
-    assert(double_equals(results_h1[2], results_serialized[2], 0.1));
     
     free(serialized);
     heistogram_free(h1);
@@ -340,19 +311,6 @@ static void test_random_data() {
     // Verify serialization/deserialization preserved the data
     assert(histograms_equal(h1, h2, 0.5)); // Using larger epsilon for random data
     
-    // Test percentile calculations on serialized data
-    double percentiles[] = {10.0, 25.0, 50.0, 75.0, 90.0, 95.0, 99.0};
-    double results_h1[7];
-    double results_serialized[7];
-    
-    heistogram_percentiles(h1, percentiles, 7, results_h1);
-    heistogram_percentiles_serialized(serialized, size, percentiles, 7, results_serialized);
-    
-    printf("Percentile comparisons (original vs serialized):\n");
-    for (int i = 0; i < 7; i++) {
-        printf("P%.1f: %.2f vs %.2f\n", percentiles[i], results_h1[i], results_serialized[i]);
-        assert(double_equals(results_h1[i], results_serialized[i], 0.5)); // Using larger epsilon for random data
-    }
     
     // Cleanup
     free(serialized);
@@ -571,17 +529,7 @@ static void test_extreme_percentiles() {
     printf("  P99.99: %.2f\n", p99_99);
     printf("  P99.999: %.2f\n", p99_999);
     printf("  P100: %.2f\n", p100);
-    
-    // Test extreme percentiles in batch
-    double extreme_percentiles[] = {0.0, 0.1, 1.0, 99.0, 99.9, 99.99, 99.999, 100.0};
-    double extreme_results[8];
-    heistogram_percentiles(h, extreme_percentiles, 8, extreme_results);
-    
-    printf("Batch Extreme Percentiles:\n");
-    for (int i = 0; i < 8; i++) {
-        printf("  P%.3f: %.2f\n", extreme_percentiles[i], extreme_results[i]);
-    }
-    
+        
     // Verify min/max against p0/p100
     assert(double_equals(heistogram_min(h), p0, 0.01));
     assert(double_equals(heistogram_max(h), p100, 0.01));
@@ -609,15 +557,6 @@ static void test_extreme_percentiles() {
     assert(double_equals(p99_99, p99_99_s, 0.01));
     assert(double_equals(p100, p100_s, 0.01));
     
-    // Test batch extreme percentiles on serialized data
-    double extreme_results_s[8];
-    heistogram_percentiles_serialized(serialized, size, extreme_percentiles, 8, extreme_results_s);
-    
-    printf("Serialized Batch Extreme Percentiles:\n");
-    for (int i = 0; i < 8; i++) {
-        printf("  P%.3f: %.2f vs %.2f\n", extreme_percentiles[i], extreme_results[i], extreme_results_s[i]);
-        assert(double_equals(extreme_results[i], extreme_results_s[i], 0.01));
-    }
     
     // Clean up
     free(serialized);
@@ -662,22 +601,17 @@ static void test_skewed_distributions() {
     
     // Test extreme percentiles for both distributions
     double extreme_percentiles[] = {0.0, 0.1, 1.0, 50.0, 99.0, 99.9, 99.99, 100.0};
-    double right_results[8];
-    double left_results[8];
-    
-    heistogram_percentiles(h_right_skewed, extreme_percentiles, 8, right_results);
-    heistogram_percentiles(h_left_skewed, extreme_percentiles, 8, left_results);
     
     printf("Right-skewed distribution (many low values, few high values):\n");
     print_heistogram_stats(h_right_skewed, "Right-skewed Heistogram");
     for (int i = 0; i < 8; i++) {
-        printf("  P%.3f: %.2f\n", extreme_percentiles[i], right_results[i]);
+        printf("  P%.3f: %.2f\n", extreme_percentiles[i], heistogram_percentile(h_right_skewed, extreme_percentiles[i]));
     }
     
     printf("\nLeft-skewed distribution (few low values, many high values):\n");
     print_heistogram_stats(h_left_skewed, "Left-skewed Heistogram");
     for (int i = 0; i < 8; i++) {
-        printf("  P%.3f: %.2f\n", extreme_percentiles[i], left_results[i]);
+        printf("  P%.3f: %.2f\n", extreme_percentiles[i], heistogram_percentile(h_left_skewed, extreme_percentiles[i]));
     }
     
     // Clean up
