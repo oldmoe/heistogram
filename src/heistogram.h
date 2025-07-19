@@ -441,29 +441,80 @@ static double heistogram_percentile(const Heistogram* h, double p) {
     return h->min;
 }
 
+// Fixed heistogram_prank function
 static double heistogram_prank(const Heistogram* h, double value) {
-    if (!h || value < 0) return 0;
-    if (value >= h->max) return h->max;
+    if (!h || h->total_count == 0) return 0;
+    if (value < h->min) return 0;
+    if (value >= h->max) return 100.0;  // Fixed: was returning h->max
     
     int16_t bid = get_bucket_id(value);
-    if (bid >= h->capacity) return 100;
+    if (bid >= h->capacity) return 100.0;
     
     uint64_t cumsum = 0;
+    
+    // Count all buckets below the target bucket
     for (int16_t i = 0; i < bid; i++) {
         cumsum += h->buckets[i].count;
     }
     
-    // Calculate position within the bucket
+    // Calculate position within the target bucket
     uint64_t min_val = get_bucket_min(bid);
     uint64_t max_val = get_bucket_max(min_val);
+    
+    // Clamp bucket bounds to actual histogram bounds
+    if (max_val > h->max) max_val = h->max;
+    if (min_val < h->min) min_val = h->min;
+    
     double pos;
     if (max_val == min_val) {
-        pos = 0.5;
+        pos = 1.0;  // All values in bucket are <= value
     } else {
-        pos = ((value) - (min_val)) / ((max_val) - (min_val));
+        pos = ((double)(value - min_val)) / ((double)(max_val - min_val));
+        if (pos > 1.0) pos = 1.0;  // Clamp to bucket bounds
     }
     
-    return 100.0 * (cumsum + pos * h->buckets[bid].count) / (h->total_count);
+    // Add the fraction of the target bucket
+    cumsum += (uint64_t)(pos * h->buckets[bid].count);
+    
+    return 100.0 * cumsum / h->total_count;
+}
+
+// New function: count elements <= value
+static uint64_t heist_count_upto(const Heistogram* h, uint64_t value) {
+    if (!h || h->total_count == 0) return 0;
+    if (value < h->min) return 0;
+    if (value >= h->max) return h->total_count;
+    
+    int16_t bid = get_bucket_id(value);
+    if (bid >= h->capacity) return h->total_count;
+    
+    uint64_t cumsum = 0;
+    
+    // Count all buckets below the target bucket
+    for (int16_t i = 0; i < bid; i++) {
+        cumsum += h->buckets[i].count;
+    }
+    
+    // Calculate position within the target bucket
+    uint64_t min_val = get_bucket_min(bid);
+    uint64_t max_val = get_bucket_max(min_val);
+    
+    // Clamp bucket bounds to actual histogram bounds
+    if (max_val > h->max) max_val = h->max;
+    if (min_val < h->min) min_val = h->min;
+    
+    double pos;
+    if (max_val == min_val) {
+        pos = 1.0;  // All values in bucket are <= value
+    } else {
+        pos = ((double)(value - min_val)) / ((double)(max_val - min_val));
+        if (pos > 1.0) pos = 1.0;  // Clamp to bucket bounds
+    }
+    
+    // Add the fraction of the target bucket
+    cumsum += (uint64_t)(pos * h->buckets[bid].count);
+    
+    return cumsum;
 }
 
 static inline void* heistogram_serialize(const Heistogram* h, size_t* size) {
@@ -790,10 +841,14 @@ static int heistogram_merge_inplace_serialized(Heistogram* h, const void* buffer
     // Decode the header
     size_t bytes_read = decode_header(ptr, &bucket_count, &total_count, &min, &max, &min_bucket_id);
     if (bytes_read == 0) return 0;
+
+    if(total_count == 0) return 1; // we are merging with an empty heistgram
+
     ptr += bytes_read;
     
     uint16_t max_bucket_id = min_bucket_id + bucket_count - 1;
     
+
     // Expand h if needed to accommodate serialized Heistogram's buckets
     if (max_bucket_id >= h->capacity) {
         uint16_t new_capacity = max_bucket_id + 1;
