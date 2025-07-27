@@ -480,7 +480,7 @@ static double heistogram_prank(const Heistogram* h, double value) {
 }
 
 // New function: count elements <= value
-static uint64_t heist_count_upto(const Heistogram* h, uint64_t value) {
+static uint64_t heistogram_count_upto(const Heistogram* h, uint64_t value) {
     if (!h || h->total_count == 0) return 0;
     if (value < h->min) return 0;
     if (value >= h->max) return h->total_count;
